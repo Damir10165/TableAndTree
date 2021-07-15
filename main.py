@@ -5,94 +5,45 @@ from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QPushButton, QMainW
 from PyQt5 import QtSql
 
 import sys
-import os
-
-class Connect(QtSql.QSqlDatabase):
-
-    DATABASE_NAME = 'example.db'
-    DATABASE_HOSTNAME = 'ExampleDataBase'
-
-    def __init__(self):
-        super().__init__()
-
-        self.Connect_DataBase()
-
-    def Connect_DataBase(self):
-        if os.path.exists(self.DATABASE_NAME):
-            self.Open_DataBase()
-        else:
-            self.Create_DataBase()
-
-    def Open_DataBase(self):
-        con = QtSql.QSqlDatabase.addDatabase('QSQLITE')
-        con.setHostName(self.DATABASE_HOSTNAME)
-        con.setDatabaseName(self.DATABASE_NAME)
-
-        if con.open():
-            print("Open data base is success")
-            return True
-        else:
-            print("Error open data base")
-            return False
-
-    def  Create_DataBase(self):
-        if self.Open_DataBase():
-           if self.Create_DataBase_Table():
-               print("Create data base is success")
-               return True
-           else:
-               print("Error create table")
-               return False
-        else:
-            print("Error open data base for create table")
-            return False
-
-    def Create_DataBase_Table(self):
-
-        query = QtSql.QSqlQuery()
-
-        if query.exec("CREATE TABLE Numbers (f float)"):
-
-            print("Create table is success")
-            return True
-        else:
-            print("Error create table")
-            return False
-
-        query.clear()
-
 
 class Table(QTableView):
 
-
     def __init__(self):
         super().__init__()
-
-        self.con = Connect()
 
         self.Table()
 
     def Table(self):
+        self.con = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+        self.con.setDatabaseName('db.sqlite')
+        exec("")
+        if self.con.open() != True:
+            print(self.con.lastError().text())
 
-        self.model = QtSql.QSqlTableModel(self, self.con)
+        self.model = QtSql.QSqlTableModel(self)
 
-        self.model.setTable('Numbers')
-        self.model.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+        query = QtSql.QSqlQuery()
 
+        #if query.exec("CREATE TABLE Persons (Person int, LastName varchar(255), FirstName varchar(255), Address varchar(255), City varchar(255));"):
+        if query.exec("CREATE TABLE Numbers (f float);"):
+
+            print("Create table is success")
+
+            self.model.setTable('Numbers')
+            self.model.setEditStrategy(QtSql.QSqlTableModel.OnFieldChange)
+
+        query.clear()
         self.model.select()
 
         self.table = QTableView()
         self.table.setModel(self.model)
-
-
 
     def add_row(self):
 
         row_position = self.model.rowCount()
         column_position = self.model.columnCount()
 
-        #rec = self.con.record('Numbers')
-        rec.setValue()
+        rec = self.con.record('Numbers')
 
         self.model.insertRow(row_position)
         self.model.select()
@@ -118,22 +69,26 @@ class Window(QMainWindow):
         self.initUI()
 
     def initUI(self):
+
+
         #Таблица
 
-        table1 = Table()
+        table = Table()
 
         #кнопки добавления строк и столбцов
+
         Action_1 = QAction('Добавить строку', self)
-        Action_1.triggered.connect(table1.add_row)
+        Action_1.triggered.connect(table.add_row)
 
         Action_2 = QAction('Добавить столбец', self)
-        Action_2.triggered.connect(table1.add_column)
+        Action_2.triggered.connect(table.add_column)
 
         self.toolbar = self.addToolBar('Добавить строку')
         self.toolbar.addAction(Action_1)
 
         self.toolbar = self.addToolBar('Добавить столбец')
         self.toolbar.addAction(Action_2)
+
 
         #таблица и дерево
         window = QWidget()
@@ -143,7 +98,7 @@ class Window(QMainWindow):
         grid = QGridLayout()
         grid.setSpacing(5)
 
-        grid.addWidget(table1.table, 1, 0)
+        grid.addWidget(table, 1, 0)
         grid.addWidget(Tree, 1, 1)
 
         window.setLayout(grid)
