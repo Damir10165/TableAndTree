@@ -1,66 +1,59 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QPushButton, QMainWindow, QAction, QTextEdit, QGridLayout, QTableView
+from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
+                             QMainWindow, QAction, QTextEdit, QGridLayout,
+                             QTableView)
 from PyQt5 import QtSql
+
+import random
+
 
 import sys
 import os
+DATABASE_NAME = 'example.db'
 
-class Connect(QtSql.QSqlDatabase):
+def Connect_DataBase():
+    if os.path.exists(DATABASE_NAME):
+        return Open_DataBase()
+    else:
+        return Create_DataBase()
 
-    DATABASE_NAME = 'example.db'
-    DATABASE_HOSTNAME = 'ExampleDataBase'
 
-    def __init__(self):
-        super().__init__()
+def Open_DataBase():
+    con = QtSql.QSqlDatabase.addDatabase('QSQLITE')
+    con.setDatabaseName(DATABASE_NAME)
 
-        self.Connect_DataBase()
+    if con.open():
+        print("Open data base is success")
+        return con
+    else:
+        print("Error open data base")
+        return None
 
-    def Connect_DataBase(self):
-        if os.path.exists(self.DATABASE_NAME):
-            self.Open_DataBase()
-        else:
-            self.Create_DataBase()
 
-    def Open_DataBase(self):
-        con = QtSql.QSqlDatabase.addDatabase('QSQLITE')
-        con.setHostName(self.DATABASE_HOSTNAME)
-        con.setDatabaseName(self.DATABASE_NAME)
-
-        if con.open():
-            print("Open data base is success")
-            return True
-        else:
-            print("Error open data base")
-            return False
-
-    def  Create_DataBase(self):
-        if self.Open_DataBase():
-           if self.Create_DataBase_Table():
-               print("Create data base is success")
-               return True
-           else:
-               print("Error create table")
-               return False
-        else:
-            print("Error open data base for create table")
-            return False
-
-    def Create_DataBase_Table(self):
-
-        query = QtSql.QSqlQuery()
-
-        if query.exec("CREATE TABLE Numbers (f float)"):
-
-            print("Create table is success")
-            return True
+def Create_DataBase():
+    con = Open_DataBase()
+    if con is not None:
+        if Create_DataBase_Table(con):
+            print("Create data base is success")
+            return con
         else:
             print("Error create table")
-            return False
+            return None
+    else:
+        print("Error open data base for create table")
+        return None
 
-        query.clear()
 
+def Create_DataBase_Table(con):
+    if con.exec("CREATE TABLE Numbers (a float, b float, c float)"):
+
+        print("Create table is success")
+        return True
+    else:
+        print("Error create table")
+        return None
 
 class Table(QTableView):
 
@@ -68,11 +61,7 @@ class Table(QTableView):
     def __init__(self):
         super().__init__()
 
-        self.con = Connect()
-
-        self.Table()
-
-    def Table(self):
+        self.con = Connect_DataBase()
 
         self.model = QtSql.QSqlTableModel(self, self.con)
 
@@ -85,27 +74,25 @@ class Table(QTableView):
         self.table.setModel(self.model)
 
 
-
     def add_row(self):
 
-        row_position = self.model.rowCount()
         column_position = self.model.columnCount()
 
-        #rec = self.con.record('Numbers')
-        rec.setValue()
 
-        self.model.insertRow(row_position)
-        self.model.select()
+        rec = QtSql.QSqlRecord()
 
-        print(rec.isEmpty())
-        print(rec.count())
+        rec.append(QtSql.QSqlField('a'))
+        rec.append(QtSql.QSqlField('b'))
+        rec.append(QtSql.QSqlField('c'))
 
-    def add_column(self):
-        row_position = self.model.rowCount()
-        column_position = self.model.columnCount()
+        rec.setValue('a', float(1.0))
+        rec.setValue('b', float(1.0))
+        rec.setValue('c', float(1.0))
 
-        self.model.insertColumn(column_position)
-        self.model.select()
+        self.model.insertRecord(-1, rec)
+
+
+
 
 
 class Window(QMainWindow):
@@ -117,23 +104,22 @@ class Window(QMainWindow):
 
         self.initUI()
 
+
     def initUI(self):
         #Таблица
 
-        table1 = Table()
+        self.table1 = Table()
+
 
         #кнопки добавления строк и столбцов
-        Action_1 = QAction('Добавить строку', self)
-        Action_1.triggered.connect(table1.add_row)
 
-        Action_2 = QAction('Добавить столбец', self)
-        Action_2.triggered.connect(table1.add_column)
+        Action_1 = QAction('Добавить строку', self)
+        Action_1.triggered.connect(self.table1.add_row)
+
 
         self.toolbar = self.addToolBar('Добавить строку')
         self.toolbar.addAction(Action_1)
 
-        self.toolbar = self.addToolBar('Добавить столбец')
-        self.toolbar.addAction(Action_2)
 
         #таблица и дерево
         window = QWidget()
@@ -143,13 +129,15 @@ class Window(QMainWindow):
         grid = QGridLayout()
         grid.setSpacing(5)
 
-        grid.addWidget(table1.table, 1, 0)
+        grid.addWidget(self.table1.table, 1, 0)
         grid.addWidget(Tree, 1, 1)
 
         window.setLayout(grid)
 
         self.setCentralWidget(window)
 
+
+        self.setCentralWidget(window)
         self.setGeometry(500, 500, 500, 500)
         self.setWindowTitle("Главное окно")
         self.show()
