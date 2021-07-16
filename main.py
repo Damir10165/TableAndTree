@@ -70,13 +70,10 @@ class Table(QTableView):
 
         self.model.select()
 
-        self.table = QTableView()
-        self.table.setModel(self.model)
+        self.setModel(self.model)
 
 
     def add_row(self):
-
-        column_position = self.model.columnCount()
 
 
         rec = QtSql.QSqlRecord()
@@ -85,9 +82,9 @@ class Table(QTableView):
         rec.append(QtSql.QSqlField('b'))
         rec.append(QtSql.QSqlField('c'))
 
-        rec.setValue('a', float(1.0))
-        rec.setValue('b', float(1.0))
-        rec.setValue('c', float(1.0))
+        rec.setValue('a', float('{:.2}'.format(random.uniform(0,1))))
+        rec.setValue('b', float('{:.2}'.format(random.uniform(0,1))))
+        rec.setValue('c', float('{:.2}'.format(random.uniform(0,1))))
 
         self.model.insertRecord(-1, rec)
 
@@ -129,7 +126,7 @@ class Window(QMainWindow):
         grid = QGridLayout()
         grid.setSpacing(5)
 
-        grid.addWidget(self.table1.table, 1, 0)
+        grid.addWidget(self.table1, 1, 0)
         grid.addWidget(Tree, 1, 1)
 
         window.setLayout(grid)
