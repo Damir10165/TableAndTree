@@ -1,8 +1,11 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
-from PyQt5.QtWidgets import QApplication, QWidget, QToolBar, QPushButton, QMainWindow, QAction, QTextEdit, QGridLayout, QTableView
+from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
+                             QMainWindow, QAction, QTextEdit, QGridLayout,
+                             QTableView)
 from PyQt5 import QtSql
+
 
 import sys
 import os
@@ -85,7 +88,6 @@ class Table(QTableView):
         self.table.setModel(self.model)
 
 
-
     def add_row(self):
 
         row_position = self.model.rowCount()
@@ -117,23 +119,27 @@ class Window(QMainWindow):
 
         self.initUI()
 
+
     def initUI(self):
         #Таблица
 
-        table1 = Table()
+        self.table1 = Table()
+
 
         #кнопки добавления строк и столбцов
+
         Action_1 = QAction('Добавить строку', self)
-        Action_1.triggered.connect(table1.add_row)
+        Action_1.triggered.connect(self.table1.add_row)
 
         Action_2 = QAction('Добавить столбец', self)
-        Action_2.triggered.connect(table1.add_column)
+        Action_2.triggered.connect(self.table1.add_column)
 
         self.toolbar = self.addToolBar('Добавить строку')
         self.toolbar.addAction(Action_1)
 
         self.toolbar = self.addToolBar('Добавить столбец')
         self.toolbar.addAction(Action_2)
+
 
         #таблица и дерево
         window = QWidget()
@@ -143,13 +149,15 @@ class Window(QMainWindow):
         grid = QGridLayout()
         grid.setSpacing(5)
 
-        grid.addWidget(table1.table, 1, 0)
+        grid.addWidget(self.table1.table, 1, 0)
         grid.addWidget(Tree, 1, 1)
 
         window.setLayout(grid)
 
         self.setCentralWidget(window)
 
+
+        self.setCentralWidget(window)
         self.setGeometry(500, 500, 500, 500)
         self.setWindowTitle("Главное окно")
         self.show()
