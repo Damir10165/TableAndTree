@@ -7,7 +7,8 @@ import random
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
                              QMainWindow, QAction, QTextEdit, QGridLayout,
-                             QTableView, QDoubleSpinBox, QStyledItemDelegate)
+                             QTableView, QDoubleSpinBox, QStyledItemDelegate,
+                             )
 from PyQt5 import QtSql, QtCore, QtGui
 
 
@@ -67,10 +68,13 @@ class SpinBoxDelegate(QStyledItemDelegate):
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
-        if index.data() > 0.5:
-            option.backgroundBrush = QtGui.QColor("red")
-        else:
-            option.backgroundBrush = QtGui.QColor("blue")
+
+        color = QtCore.QVariantAnimation()
+        color.setStartValue(QtGui.QColor("blue"))
+        color.setEndValue(QtGui.QColor("red"))
+
+        option.backgroundBrush = color.interpolated(QtGui.QColor("blue"), QtGui.QColor("red"), index.data())
+
 
 class Table(QTableView):
 
@@ -137,7 +141,7 @@ class Window(QMainWindow):
         self.setCentralWidget(window)
 
         self.setCentralWidget(window)
-        self.setGeometry(500, 500, 500, 500)
+        self.setGeometry(500, 500, 660, 500)
         self.setWindowTitle("Главное окно")
         self.show()
 
