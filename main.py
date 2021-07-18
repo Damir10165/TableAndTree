@@ -7,9 +7,9 @@ import random
 
 from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
                              QMainWindow, QAction, QTextEdit, QGridLayout,
-                             QTableView)
+                             QTableView, QDoubleSpinBox, QStyledItemDelegate)
 from PyQt5 import QtSql
-
+from PyQt5 import QtCore
 
 DATABASE_NAME = 'example.db'
 
@@ -53,6 +53,17 @@ def create_data_base_table(con):
         return None
 
 
+class SpinBoxDelegate(QStyledItemDelegate):
+
+    def createEditor(self, parent, option, index):
+
+        editor = QDoubleSpinBox(parent)
+
+        editor.setMinimum(0)
+        editor.setMaximum(1)
+
+        return editor
+
 class Table(QTableView):
 
     def __init__(self):
@@ -66,10 +77,12 @@ class Table(QTableView):
         self.model.select()
         self.setModel(self.model)
 
+        delegate = SpinBoxDelegate()
+        self.setItemDelegate(delegate)
+
     def add_row(self):
         # Добавление в каждый столбец нового элемента.
         rec = QtSql.QSqlRecord()
-
         rec.append(QtSql.QSqlField('a'))
         rec.append(QtSql.QSqlField('b'))
         rec.append(QtSql.QSqlField('c'))
