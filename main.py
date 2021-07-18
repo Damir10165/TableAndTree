@@ -8,8 +8,9 @@ import random
 from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
                              QMainWindow, QAction, QTextEdit, QGridLayout,
                              QTableView, QDoubleSpinBox, QStyledItemDelegate)
-from PyQt5 import QtSql
-from PyQt5 import QtCore
+from PyQt5 import QtSql, QtCore, QtGui
+
+
 
 DATABASE_NAME = 'example.db'
 
@@ -63,6 +64,13 @@ class SpinBoxDelegate(QStyledItemDelegate):
         editor.setMaximum(1)
 
         return editor
+
+    def initStyleOption(self, option, index):
+        super().initStyleOption(option, index)
+        if index.data() > 0.5:
+            option.backgroundBrush = QtGui.QColor("red")
+        else:
+            option.backgroundBrush = QtGui.QColor("blue")
 
 class Table(QTableView):
 
