@@ -8,10 +8,8 @@ import random
 from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
                              QMainWindow, QAction, QTextEdit, QGridLayout,
                              QTableView, QDoubleSpinBox, QStyledItemDelegate,
-                             )
+                             QTreeView)
 from PyQt5 import QtSql, QtCore, QtGui
-
-
 
 DATABASE_NAME = 'example.db'
 
@@ -61,6 +59,7 @@ class SpinBoxDelegate(QStyledItemDelegate):
 
         editor = QDoubleSpinBox(parent)
 
+        #минимально и максимально допустимое значение в ячейке
         editor.setMinimum(0)
         editor.setMaximum(1)
 
@@ -69,10 +68,12 @@ class SpinBoxDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
 
+        #создание анимации перехода от синего к красному
         color = QtCore.QVariantAnimation()
         color.setStartValue(QtGui.QColor("blue"))
         color.setEndValue(QtGui.QColor("red"))
 
+        #выбор цвета в зависимости от значения в ячейке
         option.backgroundBrush = color.interpolated(QtGui.QColor("blue"), QtGui.QColor("red"), index.data())
 
 
@@ -93,6 +94,7 @@ class Table(QTableView):
         self.setItemDelegate(delegate)
 
     def add_row(self):
+
         # Добавление в каждый столбец нового элемента.
         rec = QtSql.QSqlRecord()
         rec.append(QtSql.QSqlField('a'))
@@ -104,6 +106,19 @@ class Table(QTableView):
         rec.setValue('c', float('{:.2}'.format(random.uniform(0,1))))
 
         self.model.insertRecord(-1, rec)
+
+
+class Tree(QTreeView):
+
+    def __init__(self, table_model):
+        super().__init__()
+
+        model = QtCore.QIdentityProxyModel()
+        model.setSourceModel(table_model)
+        
+
+        self.setModel(model)
+
 
 
 class Window(QMainWindow):
@@ -128,13 +143,13 @@ class Window(QMainWindow):
         #таблица и дерево
         window = QWidget()
 
-        Tree = QTextEdit()
+        self.tree = Tree(self.table1.model)
 
         grid = QGridLayout()
         grid.setSpacing(5)
 
         grid.addWidget(self.table1, 1, 0)
-        grid.addWidget(Tree, 1, 1)
+        grid.addWidget(self.tree, 1, 1)
 
         window.setLayout(grid)
 
