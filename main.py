@@ -113,45 +113,49 @@ class ProxyModel(QtCore.QAbstractProxyModel):
     def __init__(self):
         super().__init__()
 
-    def sourceDataChanged(self, topLeft, bottomRight):
-        self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
-
     def buildMap(self, model, parent = QtCore.QModelIndex(), row = 0, column = 0):
         if row == 0 and column == 0:
             self.m_rowMap = {}
             self.m_indexMap = {}
         rows = model.rowCount(parent)
+
+        parent_t1 = self.index(0, 0, QtCore.QModelIndex())
+        parent_t2 = self.index(1, 0, QtCore.QModelIndex())
+
         for i in range(3):
             for r in range(rows):
+
                 index = model.index(r, i, parent)
-                #print('row', row, 'item', model.data(index))
-                self.m_rowMap[index] = row
-                self.m_indexMap[row] = index
+
+                if index.data() < 0.5:
+                    index_row = self.index(row, 0, parent_t1)
+                else:
+                    index_row = self.index(row, 0, parent_t2)
+                #print(self.hasChildren())
+                self.m_rowMap[index] = index_row
+                self.m_indexMap[index_row] = index
+
                 row = row + 1
         return row
 
     def setSourceModel(self, model):
         QtCore.QAbstractProxyModel.setSourceModel(self, model)
         self.buildMap(model)
-        #print(flush=True)
-        model.dataChanged.connect(self.sourceDataChanged)
 
     def mapFromSource(self, index):
         if index not in self.m_rowMap:
             return QtCore.QModelIndex()
-        return self.createIndex(self.m_rowMap[index], index.column())
+        return self.m_rowMap[index]
 
     def mapToSource(self, index):
-        if not index.isValid() or index.row() not in self.m_indexMap:
+        if index not in self.m_indexMap:
             return QtCore.QModelIndex()
-        # print('mapping from row', index.row(), flush = True)
-        return self.m_indexMap[index.row()]
+        return self.m_indexMap[index]
 
     def rowCount(self, parent):
-        return len(self.m_rowMap) if not parent.isValid() else 0
+        return len(self.m_rowMap)
 
     def index(self, row, column, parent):
-        if parent.isValid(): return QtCore.QModelIndex()
         return self.createIndex(row, column)
 
     def columnCount(self, parent):
