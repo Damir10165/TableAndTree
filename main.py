@@ -55,6 +55,14 @@ def create_data_base_table(con):
 
 class SpinBoxDelegate(QStyledItemDelegate):
 
+    def __init__(self):
+        super().__init__()
+
+        # создание анимации перехода от синего к красному
+        self.color = QtCore.QVariantAnimation()
+        self.color.setStartValue(QtGui.QColor("blue"))
+        self.color.setEndValue(QtGui.QColor("red"))
+
     def createEditor(self, parent, option, index):
 
         editor = QDoubleSpinBox(parent)
@@ -68,13 +76,8 @@ class SpinBoxDelegate(QStyledItemDelegate):
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
 
-        #создание анимации перехода от синего к красному
-        color = QtCore.QVariantAnimation()
-        color.setStartValue(QtGui.QColor("blue"))
-        color.setEndValue(QtGui.QColor("red"))
-
         #выбор цвета в зависимости от значения в ячейке
-        option.backgroundBrush = color.interpolated(QtGui.QColor("blue"), QtGui.QColor("red"), index.data())
+        option.backgroundBrush = self.color.interpolated(QtGui.QColor("blue"), QtGui.QColor("red"), index.data())
 
 
 class Table(QTableView):
@@ -101,9 +104,9 @@ class Table(QTableView):
         rec.append(QtSql.QSqlField('b'))
         rec.append(QtSql.QSqlField('c'))
 
-        rec.setValue('a', float('{:.2}'.format(random.uniform(0,1))))
-        rec.setValue('b', float('{:.2}'.format(random.uniform(0,1))))
-        rec.setValue('c', float('{:.2}'.format(random.uniform(0,1))))
+        rec.setValue('a', round(random.uniform(0,1), 2))
+        rec.setValue('b', round(random.uniform(0,1), 2))
+        rec.setValue('c', round(random.uniform(0,1), 2))
 
         self.model.insertRecord(-1, rec)
 
@@ -131,7 +134,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                     index_row = self.index(row, 0, parent_t1)
                 else:
                     index_row = self.index(row, 0, parent_t2)
-                #print(self.hasChildren())
+                #print(self.hasChildren(parent_t1))
                 self.m_rowMap[index] = index_row
                 self.m_indexMap[index_row] = index
 
@@ -165,6 +168,11 @@ class ProxyModel(QtCore.QAbstractProxyModel):
         return QtCore.QModelIndex()
 
 
+class Folder():
+
+    def __init__(self):
+        self.flag = True
+
 class Tree(QTreeView):
 
     def __init__(self, table_model):
@@ -173,7 +181,6 @@ class Tree(QTreeView):
         model = ProxyModel()
         model.setSourceModel(table_model)
         self.setModel(model)
-
 
 class Window(QMainWindow):
 
