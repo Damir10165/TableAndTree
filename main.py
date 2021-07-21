@@ -8,7 +8,7 @@ import random
 from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
                              QMainWindow, QAction, QTextEdit, QGridLayout,
                              QTableView, QDoubleSpinBox, QStyledItemDelegate,
-                             QTreeView)
+                             QTreeView, QListView)
 from PyQt5 import QtSql, QtCore, QtGui
 
 DATABASE_NAME = 'example.db'
@@ -108,17 +108,67 @@ class Table(QTableView):
         self.model.insertRecord(-1, rec)
 
 
+class ProxyModel(QtCore.QAbstractProxyModel):
+
+    def __init__(self):
+        super().__init__()
+
+    def sourceDataChanged(self, topLeft, bottomRight):
+        self.dataChanged.emit(self.mapFromSource(topLeft), self.mapFromSource(bottomRight))
+
+    def buildMap(self, model, parent = QtCore.QModelIndex(), row = 0, column = 0):
+        if row == 0 and column == 0:
+            self.m_rowMap = {}
+            self.m_indexMap = {}
+        rows = model.rowCount(parent)
+        for i in range(3):
+            for r in range(rows):
+                index = model.index(r, i, parent)
+                #print('row', row, 'item', model.data(index))
+                self.m_rowMap[index] = row
+                self.m_indexMap[row] = index
+                row = row + 1
+        return row
+
+    def setSourceModel(self, model):
+        QtCore.QAbstractProxyModel.setSourceModel(self, model)
+        self.buildMap(model)
+        #print(flush=True)
+        model.dataChanged.connect(self.sourceDataChanged)
+
+    def mapFromSource(self, index):
+        if index not in self.m_rowMap:
+            return QtCore.QModelIndex()
+        return self.createIndex(self.m_rowMap[index], index.column())
+
+    def mapToSource(self, index):
+        if not index.isValid() or index.row() not in self.m_indexMap:
+            return QtCore.QModelIndex()
+        # print('mapping from row', index.row(), flush = True)
+        return self.m_indexMap[index.row()]
+
+    def rowCount(self, parent):
+        return len(self.m_rowMap) if not parent.isValid() else 0
+
+    def index(self, row, column, parent):
+        if parent.isValid(): return QtCore.QModelIndex()
+        return self.createIndex(row, column)
+
+    def columnCount(self, parent):
+        return 1
+
+    def parent(self, index):
+        return QtCore.QModelIndex()
+
+
 class Tree(QTreeView):
 
     def __init__(self, table_model):
         super().__init__()
 
-        model = QtCore.QIdentityProxyModel()
+        model = ProxyModel()
         model.setSourceModel(table_model)
-        
-
         self.setModel(model)
-
 
 
 class Window(QMainWindow):
