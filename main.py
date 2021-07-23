@@ -111,67 +111,103 @@ class Table(QTableView):
         self.model.insertRecord(-1, rec)
 
 
+class TreeItem():
+
+    def __init__(self, parent, data):
+
+        self.parentItem = parent
+        self.parentData = data
+
+
+class Folder():
+
+    def __init__(self, name):
+        self.name = name
+        self.list_table = list()
+
+    def add_child(self, child):
+        self.list_table.append(child)
+
+    def remove_child(self, child):
+        self.list_table.pop(child)
+
+    def insert_child(self, child):
+        self.list_table.insert(child.index_tree, child)
+
+    def Name(self):
+        return self.name
+
+    def count_row(self):
+        return len(self.list_table)
+
+    def seach_index_table(self, index):
+        return self.list_table.IndexOf(index)
+
+class File():
+
+    def __init__(self, index_table, index_tree):
+        self.index_table = index_table
+        self.index_tree = index_tree
+
+
 class ProxyModel(QtCore.QAbstractProxyModel):
 
     def __init__(self):
         super().__init__()
 
-    def buildMap(self, model, parent = QtCore.QModelIndex(), row = 0, column = 0):
-        if row == 0 and column == 0:
-            self.m_rowMap = {}
-            self.m_indexMap = {}
-        rows = model.rowCount(parent)
+    def build_map(self, model):
+        self.folder1 = Folder(">=0.5")
+        self.folder2 = Folder("<0.5")
 
-        parent_t1 = self.index(0, 0, QtCore.QModelIndex())
-        parent_t2 = self.index(1, 0, QtCore.QModelIndex())
+        rows = model.rowCount()
+        column = model.columnCount()
+        row = 0
 
-        for i in range(3):
-            for r in range(rows):
+        for i in range(column):
+            for j in range(rows):
+                index = model.index(j,i)
 
-                index = model.index(r, i, parent)
-
-                if index.data() < 0.5:
-                    index_row = self.index(row, 0, parent_t1)
+                if index.data() >= 0.5:
+                    self.folder1.add_child(File(index, row))
                 else:
-                    index_row = self.index(row, 0, parent_t2)
-                #print(self.hasChildren(parent_t1))
-                self.m_rowMap[index] = index_row
-                self.m_indexMap[index_row] = index
+                    self.folder2.add_child(File(index, row))
 
-                row = row + 1
-        return row
+                row += 1
+
+    def data(self, proxyIndex, role):
+        if role != QtCore.Qt.DisplayRole:
+            return None
+        else:
+            return proxyIndex.data()
 
     def setSourceModel(self, model):
-        QtCore.QAbstractProxyModel.setSourceModel(self, model)
-        self.buildMap(model)
+        self.build_map(model)
+        super().setSourceModel(model)
 
     def mapFromSource(self, index):
-        if index not in self.m_rowMap:
-            return QtCore.QModelIndex()
-        return self.m_rowMap[index]
+        print("Hello")
+        return QtCore.QModelIndex()
 
     def mapToSource(self, index):
-        if index not in self.m_indexMap:
+        #print("Hello1")
+        if not index.isValid():
             return QtCore.QModelIndex()
-        return self.m_indexMap[index]
 
     def rowCount(self, parent):
-        return len(self.m_rowMap)
+        return self.folder1.count_row() + self.folder2.count_row()
 
-    def index(self, row, column, parent):
-        return self.createIndex(row, column)
+    def index(self, row, column, file):
+        return self.createIndex(row, column, File)
 
     def columnCount(self, parent):
         return 1
 
     def parent(self, index):
-        return QtCore.QModelIndex()
+        if index.internalPointer():
+            return QtCore.QModelIndex()
+        else:
+            return self.createIndex(index.row, index.column)
 
-
-class Folder():
-
-    def __init__(self):
-        self.flag = True
 
 class Tree(QTreeView):
 
@@ -181,6 +217,7 @@ class Tree(QTreeView):
         model = ProxyModel()
         model.setSourceModel(table_model)
         self.setModel(model)
+
 
 class Window(QMainWindow):
 
