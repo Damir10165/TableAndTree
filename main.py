@@ -121,9 +121,10 @@ class TreeItem():
 
 class Folder():
 
-    def __init__(self, name):
+    def __init__(self, name, index_folder):
         self.name = name
         self.list_table = list()
+        self.index_folder = index_folder
 
     def add_child(self, child):
         self.list_table.append(child)
@@ -134,14 +135,20 @@ class Folder():
     def insert_child(self, child):
         self.list_table.insert(child.index_tree, child)
 
-    def Name(self):
+    def get_name(self):
         return self.name
 
     def count_row(self):
         return len(self.list_table)
 
     def seach_index_table(self, index):
-        return self.list_table.IndexOf(index)
+        return self.list_table.index(index)
+
+    def seach_index_tree(self, index):
+        return self.list_tree.index(index)
+
+    def get_index(self):
+        return self.index_folder
 
 class File():
 
@@ -155,58 +162,83 @@ class ProxyModel(QtCore.QAbstractProxyModel):
     def __init__(self):
         super().__init__()
 
-    def build_map(self, model):
-        self.folder1 = Folder(">=0.5")
-        self.folder2 = Folder("<0.5")
+    def init_tree(self, model):
+
+        index_folder1 = QtCore.QPersistentModelIndex(self.createIndex(0, 0))
+        index_folder2 = QtCore.QPersistentModelIndex(self.createIndex(1, 0))
+
+        self.folder1 = Folder(">=0.5", index_folder1)
+        self.folder2 = Folder("<0.5", index_folder2)
 
         rows = model.rowCount()
         column = model.columnCount()
-        row = 0
+        row1 = 0
+        row2 = 0
 
         for i in range(column):
             for j in range(rows):
-                index = model.index(j,i)
+                index_table = QtCore.QPersistentModelIndex(model.index(j,i))
 
-                if index.data() >= 0.5:
-                    self.folder1.add_child(File(index, row))
+                if float(index_table.data(QtCore.Qt.DisplayRole)) >= 0.5:
+                    index_tree = QtCore.QPersistentModelIndex(self.index(row1, 0, self.folder1))
+                    self.folder1.add_child(File(index_table, index_tree))
+                    row1 += 1
                 else:
-                    self.folder2.add_child(File(index, row))
-
-                row += 1
+                    index_tree = QtCore.QPersistentModelIndex(self.index(row2, 0, self.folder2))
+                    self.folder2.add_child(File(index_table, index_tree))
+                    row2 += 1
 
     def data(self, proxyIndex, role):
+
         if role != QtCore.Qt.DisplayRole:
             return None
         else:
             return proxyIndex.data()
 
     def setSourceModel(self, model):
-        self.build_map(model)
+        self.init_tree(model)
         super().setSourceModel(model)
 
     def mapFromSource(self, index):
-        print("Hello")
-        return QtCore.QModelIndex()
-
-    def mapToSource(self, index):
-        #print("Hello1")
         if not index.isValid():
             return QtCore.QModelIndex()
+
+        index_folder = self.folder1.seach_index_tree(index)
+
+        if index_folder:
+            return index_folder
+        else:
+            return self.folder2.seach_index_tree(index)
+
+    def mapToSource(self, index):
+        if not index.isValid() or index == self.folder1.get_index() or index == self.folder2.get_index():
+            return QtCore.QModelIndex()
+
+        index_folder = self.folder1.seach_index_table(index)
+
+        if index_folder:
+            return index_folder
+        else:
+            return self.folder2.seach_index_table(index)
 
     def rowCount(self, parent):
         return self.folder1.count_row() + self.folder2.count_row()
 
-    def index(self, row, column, file):
-        return self.createIndex(row, column, File)
+    def index(self, row, column, folder):
+        return self.createIndex(row, column, folder)
 
     def columnCount(self, parent):
         return 1
 
     def parent(self, index):
-        if index.internalPointer():
+        if not index.isValid() or index == self.folder1.get_index() or index == self.folder2.get_index():
             return QtCore.QModelIndex()
-        else:
-            return self.createIndex(index.row, index.column)
+
+        if self.folder1.seach_index_tree(index):
+            return self.folder1.get_index()
+        if self.folder2.seach_index_tree(index):
+            return self.folder2.get_index()
+
 
 
 class Tree(QTreeView):
