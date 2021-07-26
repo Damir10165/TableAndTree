@@ -9,7 +9,7 @@ import weakref
 from PyQt5.QtWidgets import (QApplication, QWidget, QToolBar, QPushButton,
                              QMainWindow, QAction, QTextEdit, QGridLayout,
                              QTableView, QDoubleSpinBox, QStyledItemDelegate,
-                             QTreeView, QListView)
+                             QTreeView, QListView, QAbstractItemView)
 from PyQt5 import QtSql, QtCore, QtGui
 
 DATABASE_NAME = 'example.db'
@@ -140,26 +140,13 @@ class Folder():
 
     def count_row(self):
         return len(self.list_table)
-    """
-    def seach_index_table(self, index):
-        for i in self.list_table:
-            if i.index_table.row() == index.row() and i.index_table.column() == index.column():
-                return i.index_table
-        return None
 
-    def seach_index_tree(self, index):
-        for i in self.list_tree:
-            if i.index_tree.row() == index.row() and i.index_tree.column() == index.column():
-                return i.index_tree
-        return None
-    """
-    """
-    def index_check(self, index):
-        if self.index_in_folder.row() == index.row() and self.index_in_folder.column() == index.column():
-            return True
-        else:
-            return False
-    """
+    def get_file_by_index(self, index):
+        for row, file in enumerate(self.list_table):
+            if file.get_source_index == index:
+                return i, row
+        return None, None
+
 
 class File():
 
@@ -169,6 +156,10 @@ class File():
 
     def get_folder(self):
         return self.folder()
+
+    def get_source_index(self):
+        return QtCore.QModelIndex(self.source_index)
+
 
 class ProxyModel(QtCore.QAbstractProxyModel):
 
@@ -191,50 +182,64 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                 else:
                     self.folder2.add_child(File(index_table,self.folder2))
 
-    def data(self, proxyIndex, role):
-        if role != QtCore.Qt.DisplayRole:
+    def data(self, proxy_index, role):
+        print("data")
+        if not proxy_index.isValid():
             return None
-        
-        if self.folder1.index_check(index):
-            return self.folder1.get_name()
-        if self.folder2.index_check(index):
-            return self.folder2.get_name()
-        
-        index_in_folder = self.folder1.seach_index_table(index)
+        if role == QtCore.Qt.DisplayRole:
+            if  type(proxy_index.internalPointer()) is File:
+                file = proxy_index.internalPointer()
+                source_index = file.get_source_index()
+                return source_index.data(QtCore.Qt.DisplayRole)
 
-        if index_in_folder:
-            return index_in_folder.data(QtCore.Qt.DisplayRole)
+            else:
+                folder = proxy_index.internalPointer()
+                return folder.get_name()
         else:
-            index_in_folder = self.folder2.seach_index_table(index)
-            return index_in_folder.data(QtCore.Qt.DisplayRole)
+            return None
 
     def setSourceModel(self, model):
         self.init_tree(model)
         super().setSourceModel(model)
 
-    def mapFromSource(self, index):
-        if not index.isValid() or self.folder1.index_check(index) or self.folder2.index_check(index):
+    def mapFromSource(self, source_index):
+        print("mapFromSource")
+        file = None
+        row = None
+        if source_index.isValid():
+            if float(source_index.data(QtCore.Qt.DisplayRole)) >=0.5:
+                file, row = self.folder1.get_file_by_index(source_index)
+            else:
+                file, row = self.folder2.get_file_by_index(source_index)
+        print(file, row)
+        if file is None:
             return QtCore.QModelIndex()
-
-        index_in_folder = self.folder1.seach_index_tree(index)
-
-        if index_in_folder:
-            return index_in_folder
         else:
-            return self.folder2.seach_index_tree(index)
+            return self.createIndex(row, 0, file)
+
+    def setData(self, proxy_index, value, role):
+        if not proxy_index.isValid():
+            return False
+
+        if role == QtCore.Qt.DisplayRole:
+            if type(proxy_index.internalPointer()) is File:
+                file = proxy_index.internalPointer()
+                source_model = self.sourceModel()
+                source_model.setData(file.get_source_index(), value, role)
+                return True
+        else:
+            return False
 
     def mapToSource(self, proxy_index):
-        if not index.isValid() or self.folder1.index_check(index) or self.folder2.index_check(index):
+        print("mapToSource")
+        if proxy_index.isValid() and type(proxy_index.internalPointer()) is File:
+            file = proxy_index.internalPointer()
+            return file.get_source_index()
+        else:
             return QtCore.QModelIndex()
 
-        index_in_folder = self.folder1.seach_index_table(index)
-
-        if index_in_folder:
-            return index_in_folder
-        else:
-            return self.folder2.seach_index_table(index)
-
-    def rowCount(self, parent):
+    def rowCount(self, parent_index):
+        print("rowCount")
         if parent_index.isValid() and type(parent_index.internalPointer()) is Folder:
             folder = parent_index.internalPointer()
             return folder.count_row()
@@ -242,6 +247,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return 2
 
     def index(self, row, column, parent_index):
+        print("index")
         if parent_index.isValid() and type(parent_index.internalPointer()) is Folder:
             folder = parent_index.internalPointer()
             file = folder.get_file(row)
@@ -252,17 +258,19 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             else:
                 return self.createIndex(row, column, self.folder2)
 
-    def columnCount(self, parent):
+    def columnCount(self, parent_index):
+        print("columnCount")
         return 1
 
     def parent(self, child_index):
+        print("parent")
         if child_index.isValid() and type(child_index.internalPointer()) is File:
             file = child_index.internalPointer()
             folder = file.get_folder()
             if self.folder1 is folder:
-                return self.createIndex(1, 0, self.folder1)
+                return self.createIndex(0, 0, self.folder1)
             else:
-                return self.createIndex(2, 0, self.folder2)
+                return self.createIndex(1, 0, self.folder2)
         else:
             return QtCore.QModelIndex()
 
@@ -275,7 +283,7 @@ class Tree(QTreeView):
         model = ProxyModel()
         model.setSourceModel(table_model)
         self.setModel(model)
-
+        self.setEditTriggers(QAbstractItemView.AllEditTriggers)
 
 class Window(QMainWindow):
 
