@@ -112,14 +112,6 @@ class Table(QTableView):
         self.model.insertRecord(-1, rec)
 
 
-class TreeItem():
-
-    def __init__(self, parent, data):
-
-        self.parentItem = parent
-        self.parentData = data
-
-
 class Folder():
 
     def __init__(self, name):
@@ -274,6 +266,10 @@ class ProxyModel(QtCore.QAbstractProxyModel):
         else:
             return QtCore.QModelIndex()
 
+    def flags(self, proxy_index):
+        if proxy_index.isValid() and type(proxy_index.internalPointer()) is File:
+            return (QtCore.Qt.ItemIsEnabled or QtCore.Qt.ItemIsEditable)
+        return QtCore.Qt.ItemIsEnabled
 
 class Tree(QTreeView):
 
@@ -283,7 +279,7 @@ class Tree(QTreeView):
         model = ProxyModel()
         model.setSourceModel(table_model)
         self.setModel(model)
-        self.setEditTriggers(QAbstractItemView.AllEditTriggers)
+        #self.setEditTriggers(QAbstractItemView.AllEditTriggers)
 
 class Window(QMainWindow):
 
