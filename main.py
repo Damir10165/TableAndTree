@@ -175,7 +175,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                     self.folder2.add_child(File(index_table,self.folder2))
 
     def data(self, proxy_index, role):
-        print("data")
+        #print("data")
         if not proxy_index.isValid():
             return None
         if role == QtCore.Qt.DisplayRole:
@@ -195,7 +195,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
         super().setSourceModel(model)
 
     def mapFromSource(self, source_index):
-        print("mapFromSource")
+        #print("mapFromSource")
         file = None
         row = None
         if source_index.isValid():
@@ -203,13 +203,14 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                 file, row = self.folder1.get_file_by_index(source_index)
             else:
                 file, row = self.folder2.get_file_by_index(source_index)
-        print(file, row)
+        #print(file, row)
         if file is None:
             return QtCore.QModelIndex()
         else:
             return self.createIndex(row, 0, file)
 
     def setData(self, proxy_index, value, role):
+        print("setData")
         if not proxy_index.isValid():
             return False
 
@@ -223,7 +224,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return False
 
     def mapToSource(self, proxy_index):
-        print("mapToSource")
+        #print("mapToSource")
         if proxy_index.isValid() and type(proxy_index.internalPointer()) is File:
             file = proxy_index.internalPointer()
             return file.get_source_index()
@@ -231,7 +232,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return QtCore.QModelIndex()
 
     def rowCount(self, parent_index):
-        print("rowCount")
+        #print("rowCount")
         if parent_index.isValid() and type(parent_index.internalPointer()) is Folder:
             folder = parent_index.internalPointer()
             return folder.count_row()
@@ -239,7 +240,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return 2
 
     def index(self, row, column, parent_index):
-        print("index")
+        #print("index")
         if parent_index.isValid() and type(parent_index.internalPointer()) is Folder:
             folder = parent_index.internalPointer()
             file = folder.get_file(row)
@@ -251,11 +252,11 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                 return self.createIndex(row, column, self.folder2)
 
     def columnCount(self, parent_index):
-        print("columnCount")
+        #print("columnCount")
         return 1
 
     def parent(self, child_index):
-        print("parent")
+        #print("parent")
         if child_index.isValid() and type(child_index.internalPointer()) is File:
             file = child_index.internalPointer()
             folder = file.get_folder()
@@ -267,9 +268,13 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return QtCore.QModelIndex()
 
     def flags(self, proxy_index):
+        #print("flags")
         if proxy_index.isValid() and type(proxy_index.internalPointer()) is File:
-            return (QtCore.Qt.ItemIsEnabled or QtCore.Qt.ItemIsEditable)
+            return QtCore.Qt.ItemFlag.ItemIsEditable
         return QtCore.Qt.ItemIsEnabled
+
+    def dataChanged(self, topLeft, bottomRight, roles):
+        print("dataChanged")
 
 class Tree(QTreeView):
 
@@ -279,7 +284,7 @@ class Tree(QTreeView):
         model = ProxyModel()
         model.setSourceModel(table_model)
         self.setModel(model)
-        #self.setEditTriggers(QAbstractItemView.AllEditTriggers)
+        self.setEditTriggers(QAbstractItemView.EditTrigger.AllEditTriggers)
 
 class Window(QMainWindow):
 
