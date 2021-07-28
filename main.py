@@ -125,7 +125,7 @@ class Folder():
         self.list_table.append(child)
 
     def remove_child(self, child):
-        self.list_table.pop(child)
+        self.list_table.remove(child)
 
     def get_name(self):
         return self.name
@@ -153,7 +153,7 @@ class File():
         return QtCore.QModelIndex(self.source_index)
 
     def set_folder(self, folder):
-        self.folder = folder
+        self.folder = weakref.ref(folder)
 
 class ProxyModel(QtCore.QAbstractProxyModel):
 
@@ -281,7 +281,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
         print("update_tree")
         if roles and not QtCore.Qt.DisplayRole in roles:
             return None
-        print("=======")
+
         row_begin = topLeft.row()
         row_end = bottomRight.row()
 
@@ -311,44 +311,44 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                     else:
                         array_source_index.append(source_index)
 
-        # for i, source_index in enumerate(array_source_index):
-        #
-        #     folder1_idnex = self.createIndex(0, 0, self.folder1)
-        #     folder2_idnex = self.createIndex(1, 0, self.folder2)
-        #
-        #     file, row = self.folder1.get_file_by_index(source_index)
-        #
-        #     if file is not None and row is not None:
-        #
-        #         self.beginRemoveRows(folder1_idnex, row, row)
-        #         self.folder1.remove_child(file)
-        #         self.endRemoveRows()
-        #
-        #         new_row = self.folder2.count_row()
-        #         file.set_foler(self.folder2)
-        #         self.beginInsertRows(folder2_idnex, new_row,new_row)
-        #         self.folder2.add_child(file)
-        #         self.endInsertRows()
-        #
-        #         proxy_index = self.index(new_row, 0, self.folder2)
-        #         self.dataChanged(proxy_index,proxy_index, [QtCore.Qt.DisplayRole])
-        #
-        #     else:
-        #
-        #         file, row = self.folder2.get_file_by_index(source_index)
-        #
-        #         self.beginRemoveRows(folder2_idnex, row, row)
-        #         self.folder2.remove_child(file)
-        #         self.endRemoveRows()
-        #
-        #         new_row = self.folder1.count_row()
-        #         file.set_foler(self.folder1)
-        #         self.beginInsertRows(folder1_idnex, new_row,new_row)
-        #         self.folder1.add_child(file)
-        #         self.endInsertRows()
-        #
-        #         proxy_index = self.index(new_row, 0, self.folder1)
-        #         self.dataChanged(proxy_index,proxy_index, [QtCore.Qt.DisplayRole])
+        for i, source_index in enumerate(array_source_index):
+
+            folder1_idnex = self.createIndex(0, 0, self.folder1)
+            folder2_idnex = self.createIndex(1, 0, self.folder2)
+
+            file, row = self.folder1.get_file_by_index(source_index)
+
+            if file is not None and row is not None:
+
+                self.beginRemoveRows(folder1_idnex, row, row)
+                self.folder1.remove_child(file)
+                self.endRemoveRows()
+
+                new_row = self.folder2.count_row()
+                file.set_folder(self.folder2)
+                self.beginInsertRows(folder2_idnex, new_row,new_row)
+                self.folder2.add_child(file)
+                self.endInsertRows()
+
+                proxy_index = self.createIndex(new_row, 0, file)
+                self.dataChanged.emit(proxy_index, proxy_index, [QtCore.Qt.DisplayRole])
+
+            else:
+
+                file, row = self.folder2.get_file_by_index(source_index)
+
+                self.beginRemoveRows(folder2_idnex, row, row)
+                self.folder2.remove_child(file)
+                self.endRemoveRows()
+
+                new_row = self.folder1.count_row()
+                file.set_folder(self.folder1)
+                self.beginInsertRows(folder1_idnex, new_row,new_row)
+                self.folder1.add_child(file)
+                self.endInsertRows()
+
+                proxy_index = self.createIndex(new_row, 0, file)
+                self.dataChanged.emit(proxy_index, proxy_index, [QtCore.Qt.DisplayRole])
 
 
 class Tree(QTreeView):
