@@ -177,7 +177,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                     self.folder2.add_child(File(index_table,self.folder2))
 
     def data(self, proxy_index, role):
-        print("data")
+        #print("data")
         if not proxy_index.isValid():
             return None
 
@@ -197,9 +197,10 @@ class ProxyModel(QtCore.QAbstractProxyModel):
         self.init_tree(model)
         super().setSourceModel(model)
         model.dataChanged.connect(self.update_tree)
+        model.rowsInserted.connect(self.update_add_row)
 
     def mapFromSource(self, source_index):
-        print("mapFromSource")
+        #print("mapFromSource")
         file = None
         row = None
         if source_index.isValid():
@@ -214,7 +215,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return self.createIndex(row, 0, file)
 
     def setData(self, proxy_index, value, role):
-        print("setData")
+        #print("setData")
         if not proxy_index.isValid():
             return False
 
@@ -227,7 +228,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return False
 
     def mapToSource(self, proxy_index):
-        print("mapToSource")
+        #print("mapToSource")
         if proxy_index.isValid() and type(proxy_index.internalPointer()) is File:
             file = proxy_index.internalPointer()
             return file.get_source_index()
@@ -235,7 +236,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return QtCore.QModelIndex()
 
     def rowCount(self, parent_index):
-        print("rowCount")
+        #print("rowCount")
         if parent_index.isValid() and type(parent_index.internalPointer()) is Folder:
             folder = parent_index.internalPointer()
             return folder.count_row()
@@ -243,7 +244,7 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return 2
 
     def index(self, row, column, parent_index):
-        print("index")
+        #print("index")
         if parent_index.isValid() and type(parent_index.internalPointer()) is Folder:
             folder = parent_index.internalPointer()
             file = folder.get_file(row)
@@ -255,11 +256,11 @@ class ProxyModel(QtCore.QAbstractProxyModel):
                 return self.createIndex(row, column, self.folder2)
 
     def columnCount(self, parent_index):
-        print("columnCount")
+        #print("columnCount")
         return 1
 
     def parent(self, child_index):
-        print("parent")
+        #print("parent")
         if child_index.isValid() and type(child_index.internalPointer()) is File:
             file = child_index.internalPointer()
             folder = file.get_folder()
@@ -271,14 +272,14 @@ class ProxyModel(QtCore.QAbstractProxyModel):
             return QtCore.QModelIndex()
 
     def flags(self, proxy_index):
-        print("flags")
+        #print("flags")
         if proxy_index.isValid() and type(proxy_index.internalPointer()) is File:
             return QtCore.Qt.ItemFlag.ItemIsEditable | QtCore.Qt.ItemFlag.ItemIsEnabled\
                    | QtCore.Qt.ItemFlag.ItemIsSelectable
         return QtCore.Qt.ItemFlag.ItemIsEnabled
 
     def update_tree(self, topLeft, bottomRight, roles):
-        print("update_tree")
+        #print("update_tree")
         if roles and not QtCore.Qt.DisplayRole in roles:
             return None
 
@@ -349,6 +350,40 @@ class ProxyModel(QtCore.QAbstractProxyModel):
 
                 proxy_index = self.createIndex(new_row, 0, file)
                 self.dataChanged.emit(proxy_index, proxy_index, [QtCore.Qt.DisplayRole])
+
+    def update_add_row(self, parent, first, last):
+        #print("update_add_row")
+        for i in range(first, last+1):
+            for j in range(3):
+                source_index = self.sourceModel().index(i, j)
+
+                if source_index.data(QtCore.Qt.DisplayRole) >= 0.5:
+
+                    folder1_idnex = self.createIndex(0, 0, self.folder1)
+
+                    file = File(source_index, self.folder1)
+                    row = self.folder1.count_row()
+
+                    self.beginInsertRows(folder1_idnex, row, row)
+                    self.folder1.add_child(file)
+                    self.endInsertRows()
+
+                    proxy_index = self.createIndex(row, 0, file)
+                    self.rowsInserted.emit(self.parent(proxy_index), row, row)
+
+                else:
+
+                    folder2_idnex = self.createIndex(1, 0, self.folder2)
+
+                    file = File(source_index, self.folder2)
+                    row = self.folder2.count_row()
+
+                    self.beginInsertRows(folder2_idnex, row, row)
+                    self.folder2.add_child(file)
+                    self.endInsertRows()
+
+                    proxy_index = self.createIndex(row, 0, file)
+                    self.rowsInserted.emit(self.parent(proxy_index), row, row)
 
 
 class Tree(QTreeView):
